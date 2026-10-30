@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Замок команды</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#15131c; --panel:#1f1b28; --panel-2:#2a2434; --line:#3a3146;
+    --gold:#d9b25f; --gold-soft:#b8934a; --text:#efe6d6; --muted:#a79b8a; --wine:#7a2333;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;overflow:hidden}
+  .app{height:100%;display:flex;flex-direction:column;max-width:520px;margin:0 auto}
+
+  header{padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .title{font-family:"Cormorant SC",serif;font-size:24px;letter-spacing:.04em;color:var(--gold);line-height:1}
+  .subtitle{font-size:13px;color:var(--muted);margin-top:4px}
+  .crest{width:40px;height:40px;flex:none}
+
+  .scene-wrap{flex:1;min-height:0;position:relative;overflow:hidden}
+  svg.scene{width:100%;height:100%;display:block}
+
+  .seat{cursor:pointer;outline:none}
+  .seat .glow{opacity:0;transition:opacity .25s}
+  .seat:hover .glow,.seat.active .glow,.seat:focus-visible .glow{opacity:1}
+  .flame{transform-box:fill-box;transform-origin:50% 100%;animation:flick 1.6s ease-in-out infinite}
+  .flame.b{animation-duration:1.15s;animation-delay:-.4s}
+  @keyframes flick{0%,100%{transform:scale(1,1)}30%{transform:scale(.88,1.12)}60%{transform:scale(1.08,.92)}}
+  .torchlight{animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.55}50%{opacity:.8}}
+
+  nav{padding:10px 12px calc(12px + env(safe-area-inset-bottom));background:var(--panel);border-top:1px solid var(--line);
+      display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  nav button{appearance:none;border:1px solid var(--line);background:var(--panel-2);color:var(--text);border-radius:12px;
+      padding:10px 4px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;font:500 11.5px Inter,sans-serif;position:relative}
+  nav button .ico{font-size:20px;line-height:1}
+  nav button .soon{position:absolute;top:-6px;right:-4px;background:var(--wine);color:#fff;font-size:9px;font-weight:600;
+      padding:2px 5px;border-radius:6px;letter-spacing:.02em}
+  nav button:active{transform:scale(.96)}
+
+  .card{position:absolute;left:12px;right:12px;bottom:12px;background:rgba(31,27,40,.96);border:1px solid var(--gold-soft);
+      border-radius:14px;padding:14px 16px;transform:translateY(140%);transition:transform .3s cubic-bezier(.2,.8,.2,1);
+      box-shadow:0 10px 30px rgba(0,0,0,.5)}
+  .card.show{transform:none}
+  .card h3{font-family:"Cormorant SC",serif;font-size:20px;color:var(--gold)}
+  .card p{font-size:13.5px;color:var(--muted);margin-top:6px;line-height:1.45}
+  .card .close{position:absolute;top:8px;right:12px;background:none;border:0;color:var(--muted);font-size:22px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <div class="title">Замок команды</div>
+      <div class="subtitle" id="greet">Добро пожаловать в зал совета</div>
+    </div>
+    <svg class="crest" viewBox="0 0 40 40" aria-hidden="true">
+      <path d="M20 3 L35 9 V20 C35 29 28 35 20 38 C12 35 5 29 5 20 V9 Z" fill="#2a2434" stroke="#d9b25f" stroke-width="1.6"/>
+      <path d="M13 26 V17 h3 v2 h2 v-2 h4 v2 h2 v-2 h3 v9 Z" fill="#d9b25f"/>
+      <rect x="18.5" y="21.5" width="3" height="4.5" rx="1.5" fill="#2a2434"/>
+    </svg>
+  </header>
+
+  <div class="scene-wrap">
+    <svg class="scene" id="scene" viewBox="0 0 400 700" preserveAspectRatio="xMidYMax slice" role="img" aria-label="Зал совета: каменный трон руководителя и четыре деревянных трона">
+      <defs>
+        <pattern id="stones" width="48" height="28" patternUnits="userSpaceOnUse">
+          <rect width="48" height="28" fill="#2b2733"/>
+          <rect x="1" y="1" width="46" height="12" rx="2" fill="#332e3c"/>
+          <rect x="-23" y="15" width="46" height="12" rx="2" fill="#302b39"/>
+          <rect x="25" y="15" width="46" height="12" rx="2" fill="#352f3f"/>
+        </pattern>
+        <linearGradient id="wallShade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#000" stop-opacity=".6"/>
+          <stop offset=".6" stop-color="#000" stop-opacity=".15"/>
+          <stop offset="1" stop-color="#000" stop-opacity=".5"/>
+        </linearGradient>
+        <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#2a2129"/><stop offset="1" stop-color="#17121a"/>
+        </linearGradient>
+        <radialGradient id="torchGlow">
+          <stop offset="0" stop-color="#ffb35a" stop-opacity=".55"/><stop offset="1" stop-color="#ffb35a" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="seatGlow">
+          <stop offset="0" stop-color="#ffd27a" stop-opacity=".5"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="floorLight" cx=".5" cy=".3" r=".6">
+          <stop offset="0" stop-color="#ffb35a" stop-opacity=".12"/><stop offset="1" stop-color="#ffb35a" stop-opacity="0"/>
+        </radialGradient>
+
+        <!-- резная решётка деревянного трона -->
+        <pattern id="lattice" width="10" height="10" patternUnits="userSpaceOnUse">
+          <rect width="10" height="10" fill="#4b2b1a"/>
+          <path d="M5 2.4 L7.6 5 L5 7.6 L2.4 5 Z" fill="none" stroke="#7a5230" stroke-width=".45"/>
+          <path d="M5 1.6 L5.7 4.3 L8.4 5 L5.7 5.7 L5 8.4 L4.3 5.7 L1.6 5 L4.3 4.3 Z" fill="#c9a253"/>
+          <circle cx="5" cy="5" r=".7" fill="#7a2a1a"/>
+          <path d="M0 0 H10 M0 0 V10" stroke="#24130a" stroke-width=".8"/>
+        </pattern>
+        <pattern id="latticeDiag" href="#lattice" patternTransform="rotate(45)"/>
+        <!-- золотой орнамент-завиток -->
+        <pattern id="scroll" width="12" height="8" patternUnits="userSpaceOnUse">
+          <rect width="12" height="8" fill="#3a2114"/>
+          <path d="M0 4 C2 1 5 1 6 4 S10 7 12 4" fill="none" stroke="#d2ab5c" stroke-width=".9"/>
+          <circle cx="3" cy="2.6" r=".8" fill="#d2ab5c"/><circle cx="9" cy="5.4" r=".8" fill="#d2ab5c"/>
+        </pattern>
+        <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#f1d58a"/><stop offset="1" stop-color="#a87b33"/>
+        </linearGradient>
+
+        <!-- камень -->
+        <linearGradient id="stone" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#5f5c66"/><stop offset=".35" stop-color="#a7a4ac"/><stop offset=".7" stop-color="#8c8992"/><stop offset="1" stop-color="#55525c"/>
+        </linearGradient>
+        <linearGradient id="stoneV" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#b5b2ba"/><stop offset="1" stop-color="#6c6973"/>
+        </linearGradient>
+        <linearGradient id="stoneDark" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#46434d"/><stop offset=".5" stop-color="#77747e"/><stop offset="1" stop-color="#413e48"/>
+        </linearGradient>
+        <pattern id="flutes" width="5" height="10" patternUnits="userSpaceOnUse">
+          <rect width="5" height="10" fill="#8f8c95"/><rect width="2" height="10" fill="#bdbac2"/><rect x="3.6" width="1.4" height="10" fill="#5d5a64"/>
+        </pattern>
+
+        <path id="flamePath" d="M0 0 C-4 -3 -3 -8 0 -13 C3 -8 4 -3 0 0 Z"/>
+      </defs>
+
+      <!-- стена -->
+      <rect width="400" height="292" fill="url(#stones)"/>
+      <rect width="400" height="292" fill="url(#wallShade)"/>
+      <g id="torches"></g>
+
+      <!-- пол -->
+      <rect y="284" width="400" height="10" fill="#1d1922"/>
+      <rect y="292" width="400" height="408" fill="url(#floor)"/>
+      <g stroke="#3a2c35" stroke-width="1" opacity=".6" id="floorLines"></g>
+      <rect y="292" width="400" height="408" fill="url(#floorLight)"/>
+
+      <g id="seats"></g>
+    </svg>
+
+    <div class="card" id="card">
+      <button class="close" id="cardClose" aria-label="Закрыть">×</button>
+      <h3 id="cardTitle"></h3>
+      <p id="cardText"></p>
+    </div>
+  </div>
+
+  <nav>
+    <button data-feature="Мои задачи"><span class="soon">скоро</span><span class="ico">📜</span>Мои задачи</button>
+    <button data-feature="Процессы"><span class="soon">скоро</span><span class="ico">⚙️</span>Процессы</button>
+    <button data-feature="Команда"><span class="soon">скоро</span><span class="ico">🛡️</span>Команда</button>
+    <button data-feature="Объявления"><span class="soon">скоро</span><span class="ico">🔔</span>Объявления</button>
+  </nav>
+</div>
+
+<script>
+(function(){
+  const NS = "http://www.w3.org/2000/svg";
+  const tg = window.Telegram && window.Telegram.WebApp;
+  const el = (tag, attrs, parent) => {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+
+  // ===== Команда (поменяйте подписи здесь) =====
+  const TEAM = [
+    {id:0, title:"Руководитель", leader:true},
+    {id:1, title:"Место 1"},
+    {id:2, title:"Место 2"},
+    {id:3, title:"Место 3"},
+    {id:4, title:"Место 4"},
+  ];
+
+  // ===== Расстановка: x, y — точка у ножек; turn — поворот к центру (в градусах) =====
+  const LAYOUT = [
+    {x:200, y:452, s:1.0},                 // каменный трон на пьедестале
+    {x:74,  y:492, s:1.0,  turn: 40},      // дальний левый
+    {x:326, y:492, s:1.0,  turn:-40},      // дальний правый
+    {x:92,  y:662, s:1.0,  turn: 66},      // ближний левый
+    {x:308, y:662, s:1.0,  turn:-66},      // ближний правый
+  ];
+
+  // --- Telegram ---
+  if (tg) {
+    try {
+      tg.ready(); tg.expand();
+      tg.setHeaderColor && tg.setHeaderColor("#15131c");
+      tg.setBackgroundColor && tg.setBackgroundColor("#15131c");
+      const u = tg.initDataUnsafe && tg.initDataUnsafe.user;
+      if (u && u.first_name) document.getElementById("greet").textContent = "Добро пожаловать, " + u.first_name;
+    } catch(e) {}
+  }
+  const haptic = () => { try { tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred("light"); } catch(e){} };
+
+  // --- факелы ---
+  const tor = document.getElementById("torches");
+  [70,200,330].forEach((x,i) => {
+    const y = 150;
+    el("circle",{class:"torchlight", cx:x, cy:y-4, r:58, fill:"url(#torchGlow)", style:`animation-delay:${-i*0.8}s`},tor);
+    el("path",{d:`M${x-3} ${y+32} L${x+3} ${y+32} L${x+5} ${y+8} L${x-5} ${y+8} Z`, fill:"#4a3a2e"},tor);
+    el("rect",{x:x-7, y:y+4, width:14, height:6, rx:2, fill:"#5c5560"},tor);
+    el("use",{href:"#flamePath", fill:"#ff9a3c", class:"flame"}, el("g",{transform:`translate(${x} ${y+5}) scale(1.5)`},tor));
+    el("use",{href:"#flamePath", fill:"#ffe08a", class:"flame b"}, el("g",{transform:`translate(${x} ${y+5}) scale(.8)`},tor));
+  });
+
+  // --- линии пола ---
+  const fl = document.getElementById("floorLines");
+  for (let i=-7;i<=7;i++) el("line",{x1:200+i*24, y1:292, x2:200+i*100, y2:700},fl);
+  [318,356,410,490,600].forEach(y => el("line",{x1:0, y1:y, x2:400, y2:y},fl));
+
+  // ================= 3D-помощники для повёрнутых тронов =================
+  const K = 0.34; // насколько «сверху» смотрим
+  function proj(p, th){
+    const c = Math.cos(th), s = Math.sin(th);
+    const xr = p[0]*c + p[2]*s, zr = -p[0]*s + p[2]*c;
+    return [xr, -p[1] + zr*K];
+  }
+  function visible(n, th){
+    if (n[1] > 0) return true;
+    return (-n[0]*Math.sin(th) + n[2]*Math.cos(th)) > 1e-3;
+  }
+  // плоская грань: O — угол, U/V — направления осей; внутри рисуем в обычных 2D-координатах
+  function face(parent, th, O, U, V){
+    const o = proj(O,th), u = proj(U,th), v = proj(V,th);
+    return el("g",{transform:`matrix(${u[0]} ${u[1]} ${v[0]} ${v[1]} ${o[0]} ${o[1]})`}, parent);
+  }
+  const EDGE = {stroke:"#1c0f07", "stroke-width":.8, "vector-effect":"non-scaling-stroke"};
+  function box(parent, th, [x0,x1,y0,y1,z0,z1], paint){
+    const g = el("g",{}, parent);
+    const faces = [
+      {n:[-1,0,0], O:[x0,y1,z0], U:[0,0,1],  V:[0,-1,0], w:z1-z0, h:y1-y0, k:"side"},
+      {n:[ 1,0,0], O:[x1,y1,z1], U:[0,0,-1], V:[0,-1,0], w:z1-z0, h:y1-y0, k:"side"},
+      {n:[0,0,1],  O:[x0,y1,z1], U:[1,0,0],  V:[0,-1,0], w:x1-x0, h:y1-y0, k:"front"},
+      {n:[0,1,0],  O:[x0,y1,z0], U:[1,0,0],  V:[0,0,1],  w:x1-x0, h:z1-z0, k:"top"},
+    ];
+    faces.forEach(f => {
+      if (!visible(f.n, th)) return;
+      const fg = face(g, th, f.O, f.U, f.V);
+      const out = (f.k==="side") ? (f.n[0]<0 ? "outerL" : "outerR") : f.k;
+      paint(fg, f.k, f.w, f.h, out);
+    });
+    return g;
+  }
+
+  // ================= деревянный трон (по мотивам фото у реки) =================
+  const WOOD_FRONT = "#4b2b1a", WOOD_SIDE = "#38200f", WOOD_TOP = "#62402a";
+  function woodenThrone(g, th){
+    const right = Math.sin(th) > 0; // повернут вправо → видим левый бок
+    const slab = () => {
+      const z0=-27, z1=-19;
+      // скаты «крыши»
+      [[-30,0],[30,0]].forEach(([x]) => {
+        const fg = face(g, th, [x,130,z1], [-x,20,0], [0,0,z0-z1]);
+        el("rect",{x:0,y:0,width:1,height:1,fill:"#2e190c", ...EDGE},fg);
+      });
+      // боковые торцы
+      [-30,30].forEach(x => {
+        const n = [Math.sign(x),0,0];
+        if (!visible(n,th)) return;
+        const fg = face(g, th, [x,130, x<0?z0:z1], [0,0, x<0?1:-1], [0,-1,0]);
+        el("rect",{x:0,y:0,width:z1-z0,height:130,fill:"#2e190c", ...EDGE},fg);
+        el("line",{x1:(z1-z0)/2,y1:4,x2:(z1-z0)/2,y2:126,stroke:"#c9a253","stroke-width":1,"stroke-dasharray":"1 2.5","vector-effect":"non-scaling-stroke"},fg);
+      });
+      // лицевая сторона спинки
+      const fg = face(g, th, [-30,150,z1], [1,0,0], [0,-1,0]);
+      const outline = "M0 20 L30 0 L60 20 L60 150 L0 150 Z";
+      el("path",{d:outline, fill:"url(#lattice)", ...EDGE},fg);
+      el("path",{d:"M30 6 L55 34 L30 64 L5 34 Z", fill:"url(#latticeDiag)", stroke:"#2a170c", "stroke-width":2.2},fg);
+      el("path",{d:"M30 6 L55 34 L30 64 L5 34 Z", fill:"none", stroke:"#c9a253", "stroke-width":.8},fg);
+      el("path",{d:"M30 22 L33 31 L42 34 L33 37 L30 46 L27 37 L18 34 L27 31 Z", fill:"#1e0f07", stroke:"#e0bd6c", "stroke-width":.8},fg);
+      el("path",{d:outline, fill:"none", stroke:"#2a170c", "stroke-width":4},fg);
+      el("path",{d:"M2.5 21 L30 3 L57.5 21 V148 H2.5 Z", fill:"none", stroke:"#c9a253", "stroke-width":1, "stroke-dasharray":"1.2 1.6"},fg);
+      // навершия-пики
+      [0,60].forEach(x => {
+        el("path",{d:`M${x-1.6} 21 V12 L${x} 3 L${x+1.6} 12 V21 Z`, fill:"#3a2114", stroke:"#1c0f07","stroke-width":.6},fg);
+        el("circle",{cx:x, cy:13, r:2.1, fill:"url(#gold)"},fg);
+      });
+    };
+    const arm = (side) => {
+      const xa = side<0 ? [-42,-30] : [30,42];
+      box(g, th, [xa[0],xa[1],0,54,-20,24], (fg,k,w,h) => {
+        if (k==="top") { el("rect",{x:0,y:0,width:w,height:h,fill:WOOD_TOP, ...EDGE},fg); return; }
+        el("rect",{x:0,y:0,width:w,height:h,fill:"url(#lattice)", ...EDGE},fg);
+        el("rect",{x:1.5,y:1.5,width:w-3,height:h-3,fill:"none",stroke:"#2a170c","stroke-width":2.5},fg);
+        el("rect",{x:3,y:3,width:w-6,height:h-6,fill:"none",stroke:"#c9a253","stroke-width":.6,"stroke-dasharray":"1 1.5"},fg);
+      });
+      box(g, th, [xa[0]-2,xa[1]+2,54,63,-21,29], (fg,k,w,h) => {
+        el("rect",{x:0,y:0,width:w,height:h,fill: k==="top"?WOOD_TOP:(k==="front"?WOOD_FRONT:"url(#lattice)"), ...EDGE},fg);
+        if (k==="front"){
+          el("circle",{cx:w/2,cy:h/2,r:3.4,fill:"url(#gold)"},fg);
+          el("path",{d:`M${w/2} ${h/2-2.6} L${w/2+.8} ${h/2} L${w/2} ${h/2+2.6} L${w/2-.8} ${h/2} Z`, fill:"#7a2a1a"},fg);
+        }
+      });
+    };
+    const base = () => box(g, th, [-30,30,0,33,-19,23], (fg,k,w,h) => {
+      if (k==="top") return;
+      el("rect",{x:0,y:0,width:w,height:h,fill: k==="front"?WOOD_FRONT:WOOD_SIDE, ...EDGE},fg);
+      el("rect",{x:0,y:1.5,width:w,height:7,fill:"url(#scroll)"},fg);
+      el("rect",{x:4,y:12,width:w-8,height:h-15,fill:"none",stroke:"#24130a","stroke-width":1.4},fg);
+      el("rect",{x:5.5,y:13.5,width:w-11,height:h-18,fill:"none",stroke:"#6b4128","stroke-width":.5},fg);
+    });
+    const seat = () => box(g, th, [-31,31,33,37,-20,25], (fg,k,w,h) => {
+      el("rect",{x:0,y:0,width:w,height:h,fill: k==="top"?"#3b2214":(k==="front"?"#5a3520":WOOD_SIDE), ...EDGE},fg);
+      if (k==="front") el("rect",{x:0,y:h-1,width:w,height:1,fill:"#c9a253",opacity:.7},fg);
+    });
+
+    // порядок отрисовки: дальнее → ближнее
+    slab();
+    arm(right ? 1 : -1);
+    base(); seat();
+    arm(right ? -1 : 1);
+  }
+
+  // ================= каменный трон руководителя (по мотивам фото) =================
+  function stoneThrone(g){
+    // пьедестал в две ступени
+    const step = (wTop, wBot, yTop, hFront, depth) => {
+      el("path",{d:`M${-wTop} ${yTop-depth} H${wTop} L${wBot} ${yTop} H${-wBot} Z`, fill:"url(#stoneV)", stroke:"#3a3740","stroke-width":.8},g);
+      el("rect",{x:-wBot, y:yTop, width:wBot*2, height:hFront, fill:"url(#stoneDark)", stroke:"#2e2b33","stroke-width":.8},g);
+      for (let x=-wBot+28; x<wBot; x+=36) el("line",{x1:x,y1:yTop,x2:x,y2:yTop+hFront,stroke:"#2e2b33","stroke-width":.8},g);
+    };
+    step(88, 100, -16, 16, 10);
+    step(70, 80, -40, 14, 9);
+    const T = el("g",{transform:"translate(0 -45)"}, g); // трон стоит на верхней ступени
+
+    // ножки-постаменты
+    [-1,1].forEach(sd => {
+      const x0 = sd<0 ? -76 : 40;
+      el("path",{d:`M${x0-2} -30 H${x0+38} L${x0+36} 0 H${x0} Z`, fill:"url(#stone)", stroke:"#3a3740","stroke-width":.8},T);
+      el("rect",{x:x0-4, y:-36, width:44, height:7, rx:1.5, fill:"#a9a6ae", stroke:"#3a3740","stroke-width":.8},T);
+      el("path",{d:`M${x0+4} -22 h28 M${x0+4} -12 h28`, stroke:"#5d5a64", "stroke-width":.8},T);
+    });
+    // центральная резная панель
+    el("rect",{x:-36, y:-30, width:72, height:30, fill:"url(#stoneDark)", stroke:"#3a3740","stroke-width":.8},T);
+    el("path",{d:"M-30 0 V-16 Q-30 -26 -20 -26 H-8 Q0 -26 0 -18 Q0 -26 8 -26 H20 Q30 -26 30 -16 V0", fill:"none", stroke:"#2c2a31","stroke-width":2},T);
+    el("path",{d:"M0 -18 V-4 M-4 -6 L0 -1 L4 -6", fill:"none", stroke:"#9d9aa3","stroke-width":1.4},T);
+    // передняя полоса сиденья
+    el("rect",{x:-52, y:-54, width:104, height:24, fill:"url(#stone)", stroke:"#3a3740","stroke-width":.8},T);
+    el("path",{d:"M-52 -47 H52 M-52 -37 H52", stroke:"#5d5a64","stroke-width":.9},T);
+    el("path",{d:"M-48 -42 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3", fill:"none", stroke:"#c2bfc7","stroke-width":.7},T);
+
+    // спинка — грубая каменная плита
+    el("path",{d:"M-46 -64 L-50 -150 L-55 -180 L-40 -198 L-26 -190 L-14 -210 L4 -218 L18 -204 L32 -208 L46 -188 L52 -158 L46 -64 Z", fill:"url(#stone)", stroke:"#3a3740","stroke-width":1},T);
+    el("path",{d:"M-40 -198 L-30 -176 L-34 -150 M32 -208 L26 -184 L34 -160 M4 -218 L0 -200 M-14 -210 L-12 -192", fill:"none", stroke:"#5d5a64","stroke-width":1},T);
+    [[-30,-120],[30,-110],[-22,-160],[24,-150],[-34,-90],[36,-84],[10,-196],[-8,-178]].forEach(([x,y],i) =>
+      el("circle",{cx:x, cy:y, r:1+(i%3)*.6, fill:"#4a4750", opacity:.55},T));
+    el("path",{d:"M38 -128 l-6 10 l3 8 l-5 9", fill:"none", stroke:"#3f3c45","stroke-width":.9},T);
+    // центральный рельеф
+    el("path",{d:"M0 -200 V-84", stroke:"#4a4750","stroke-width":3.2},T);
+    el("path",{d:"M0 -200 V-84", stroke:"#c4c1c8","stroke-width":1,transform:"translate(-1.4 0)"},T);
+    el("path",{d:"M-10 -180 H10 M-6 -186 H6", stroke:"#4a4750","stroke-width":2.2},T);
+    el("circle",{cx:0, cy:-142, r:9, fill:"#8c8992", stroke:"#4a4750","stroke-width":2.2},T);
+    el("circle",{cx:0, cy:-142, r:3.5, fill:"#4a4750"},T);
+    el("path",{d:"M0 -130 C-14 -122 -20 -106 -16 -90 M0 -130 C14 -122 20 -106 16 -90 M0 -118 C-8 -112 -10 -100 -8 -90 M0 -118 C8 -112 10 -100 8 -90", fill:"none", stroke:"#4a4750","stroke-width":1.8},T);
+    el("path",{d:"M0 -156 C-8 -162 -10 -172 -6 -178 M0 -156 C8 -162 10 -172 6 -178", fill:"none", stroke:"#4a4750","stroke-width":1.5},T);
+
+    // колонны с капителями и каменными глыбами сверху
+    [-1,1].forEach(sd => {
+      const cx = sd*57;
+      el("rect",{x:cx-9, y:-170, width:18, height:68, fill:"url(#flutes)", stroke:"#3a3740","stroke-width":.8},T);
+      el("path",{d:`M${cx-13} -170 H${cx+13} L${cx+10} -180 H${cx-10} Z`, fill:"#a9a6ae", stroke:"#3a3740","stroke-width":.8},T);
+      el("circle",{cx:cx-10, cy:-175, r:3.2, fill:"none", stroke:"#5d5a64","stroke-width":1},T);
+      el("circle",{cx:cx+10, cy:-175, r:3.2, fill:"none", stroke:"#5d5a64","stroke-width":1},T);
+      el("path",{d:`M${cx-16} -180 L${cx-18} -194 L${cx-8} -206 L${cx+6} -204 L${cx+16} -196 L${cx+15} -182 Z`, fill:"url(#stoneV)", stroke:"#3a3740","stroke-width":.9},T);
+      el("path",{d:`M${cx-8} -206 L${cx-4} -192 L${cx+8} -188`, fill:"none", stroke:"#6c6973","stroke-width":.9},T);
+    });
+
+    // камни у основания спинки
+    [[-28,-74,13,8],[6,-79,16,10],[33,-74,10,6.5]].forEach(([x,y,rx,ry]) => {
+      el("ellipse",{cx:x, cy:y, rx, ry, fill:"url(#stoneV)", stroke:"#3a3740","stroke-width":.8},T);
+      el("path",{d:`M${x-rx*.5} ${y-ry*.3} q${rx*.4} ${-ry*.5} ${rx*.8} 0`, fill:"none", stroke:"#d0cdd4","stroke-width":.8, opacity:.7},T);
+    });
+    // каменная «подушка»
+    el("rect",{x:-48, y:-72, width:96, height:20, rx:9, fill:"url(#stoneV)", stroke:"#3a3740","stroke-width":1},T);
+    [-30,-10,10,30].forEach(x => el("circle",{cx:x, cy:-62, r:1.4, fill:"#6c6973"},T));
+    el("path",{d:"M-40 -66 Q-20 -60 0 -66 Q20 -60 40 -66", fill:"none", stroke:"#d0cdd4","stroke-width":.8, opacity:.6},T);
+
+    // подлокотники со «стекающими» резными концами
+    [-1,1].forEach(sd => {
+      const m = sd<0 ? "" : "scale(-1 1)";
+      const a = el("g",{transform:m},T);
+      el("rect",{x:-78, y:-98, width:32, height:64, fill:"url(#stone)", stroke:"#3a3740","stroke-width":.9},a);
+      el("path",{d:"M-72 -90 C-66 -76 -74 -64 -66 -52 C-60 -44 -66 -40 -62 -36 M-58 -92 C-54 -80 -60 -68 -54 -58", fill:"none", stroke:"#4a4750","stroke-width":1.6},a);
+      el("path",{d:"M-82 -116 L-44 -118 L-42 -102 Q-46 -90 -50 -96 Q-53 -76 -58 -92 Q-62 -70 -68 -90 Q-73 -82 -76 -94 Q-80 -86 -82 -100 Z", fill:"url(#stoneV)", stroke:"#3a3740","stroke-width":1},a);
+      el("path",{d:"M-80 -114 L-46 -116", stroke:"#d0cdd4","stroke-width":1, opacity:.7},a);
+    });
+  }
+
+  // ================= расстановка =================
+  const seatLayer = document.getElementById("seats");
+  TEAM.map((m,i) => ({...m, ...LAYOUT[i]}))
+      .sort((a,b) => a.y - b.y)
+      .forEach(m => {
+        const g = el("g",{class:"seat", tabindex:0, role:"button", "aria-label":m.title}, seatLayer);
+        const body = el("g",{transform:`translate(${m.x} ${m.y}) scale(${m.s})`}, g);
+        el("ellipse",{class:"glow", cx:0, cy:m.leader?-130:-75, rx:m.leader?120:72, ry:m.leader?150:100, fill:"url(#seatGlow)"},body);
+        el("ellipse",{cx:0, cy:m.leader?0:4, rx:m.leader?106:52, ry:m.leader?12:13, fill:"#000", opacity:.45},body);
+        if (m.leader) stoneThrone(body);
+        else woodenThrone(body, m.turn*Math.PI/180);
+
+        // табличка с именем (у повернутых — чуть ближе к центру)
+        const dx = m.leader ? 0 : Math.sign(m.turn)*(Math.abs(m.turn) < 50 ? 42 : 32);
+        const lx = m.x + dx, ly = m.y + (m.leader ? 8 : 12);
+        const pw = m.leader ? 96 : 68;
+        el("rect",{x:lx-pw/2, y:ly, width:pw, height:18, rx:5, fill:"#2a2434", stroke:"#b8934a", "stroke-width":1},g);
+        const t = el("text",{x:lx, y:ly+12.6, "text-anchor":"middle", "font-size":10.5, "font-family":"Inter, sans-serif", fill:"#efe6d6", "font-weight":600},g);
+        t.textContent = m.title;
+
+        const open = () => { haptic(); showSeat(m, g); };
+        g.addEventListener("click", open);
+        g.addEventListener("keydown", e => { if (e.key==="Enter"||e.key===" ") { e.preventDefault(); open(); } });
+      });
+
+  // --- карточка ---
+  const card = document.getElementById("card");
+  const cTitle = document.getElementById("cardTitle"), cText = document.getElementById("cardText");
+  let active = null;
+  function showCard(title, text){ cTitle.textContent = title; cText.textContent = text; card.classList.add("show"); }
+  function clearActive(){ if (active) active.classList.remove("active"); active = null; }
+  function showSeat(m, g){
+    clearActive(); active = g; g.classList.add("active");
+    showCard(m.leader ? "Каменный трон" : "Деревянный трон · " + m.title, m.leader
+      ? "Трон руководителя на пьедестале. Здесь появятся сводка по задачам команды и раздача поручений."
+      : "Свободный трон. Скоро здесь сядет коллега — с именем, ролью и своими задачами.");
+  }
+  document.getElementById("cardClose").addEventListener("click", () => { card.classList.remove("show"); clearActive(); });
+  document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => {
+    haptic(); clearActive();
+    showCard(b.dataset.feature, "Этот раздел появится в одном из следующих обновлений.");
+  }));
+})();
+</script>
+</body>
+</html>
